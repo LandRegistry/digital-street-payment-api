@@ -1,17 +1,13 @@
 package com.hmlr.api.listener
 
 import com.hmlr.api.rpcClient.CORDA_VARS
-import com.hmlr.states.InstructConveyancerState
-import khttp.get
+import com.hmlr.states.PaymentConfirmationState
 import net.corda.client.rpc.CordaRPCClient
 import net.corda.core.contracts.ContractState
 import net.corda.core.utilities.NetworkHostAndPort
 import net.corda.core.utilities.loggerFor
 import org.slf4j.Logger
-import khttp.put
 import net.corda.core.messaging.CordaRPCOps
-import org.json.JSONException
-import org.json.JSONObject
 
 class EventListenerRPC {
 
@@ -21,8 +17,8 @@ class EventListenerRPC {
 
     private fun processState(state: ContractState, proxy: CordaRPCOps) {
         when (state) {
-            is InstructConveyancerState -> {
-                logger.info("Got an InstructConveyancerState!")
+            is PaymentConfirmationState -> {
+                logger.info("Got an PaymentConfirmationState!")
 
                 // Make API calls here
             }
@@ -40,9 +36,9 @@ class EventListenerRPC {
         val nodePassword = System.getenv(CORDA_VARS.CORDA_USER_PASSWORD)
         val proxy = client.start(nodeUsername, nodePassword).proxy
 
-        val (snapshot, updates) = proxy.vaultTrack(InstructConveyancerState::class.java)
+        val (snapshot, updates) = proxy.vaultTrack(PaymentConfirmationState::class.java)
 
-        logger.info("Hopefully we should be tracking InstructConveyancerState")
+        logger.info("Hopefully we should be tracking PaymentConfirmationState")
 
         //snapshot.states.forEach {}
         updates.toBlocking().subscribe { update ->

@@ -68,6 +68,28 @@
           }
         }
       }
+    },
+    "/titles/{title_number}/confirm-payment": {
+      "put": {
+        "summary": "Tells the network that payment has been received",
+        "operationId": "confirm_payment_for_title",
+        "tags": [
+          "Payment"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TitleNumber"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -206,7 +228,8 @@
           "deposit_currency_code",
           "balance",
           "balance_currency_code",
-          "guarantee"
+          "guarantee",
+          "payment_settler"
         ],
         "properties": {
           "buyer": {
@@ -282,33 +305,15 @@
             ],
             "example": "full"
           },
+          "payment_settler": {
+            "$ref": "#/components/schemas/X500"
+          },
           "latest_update_date": {
             "type": "string",
             "format": "date-time",
             "example": "2018-11-07T10:25:29+00:00"
           }
         }
-      },
-      "SalesAgreementSign": {
-        "required": [
-          "action"
-        ],
-        "properties": {
-          "action": {
-            "type": "string",
-            "enum": [
-              "approve",
-              "sign"
-            ]
-          },
-          "signatory": {
-            "$ref": "#/components/schemas/X500"
-          },
-          "signatory_individual": {
-            "$ref": "#/components/schemas/Person"
-          }
-        },
-        "additionalProperties": false
       },
       "Charge": {
         "required": [

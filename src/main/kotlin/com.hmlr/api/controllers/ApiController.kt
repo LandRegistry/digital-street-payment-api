@@ -3,9 +3,8 @@ package com.hmlr.api.controllers
 import com.hmlr.api.common.VaultQueryHelperConsumer
 import com.hmlr.api.common.models.*
 import com.hmlr.api.rpcClient.NodeRPCConnection
-import com.hmlr.flows.*
-import com.hmlr.model.*
-import com.hmlr.states.*
+import com.hmlr.flows.ConfirmPaymentReceivedFlow
+import com.hmlr.states.PaymentConfirmationState
 import net.corda.core.node.services.IdentityService
 import net.corda.core.utilities.loggerFor
 import org.springframework.http.MediaType
@@ -41,6 +40,33 @@ class ApiController(@Suppress("CanBeParameter") private val rpc: NodeRPCConnecti
             .filter { nodeInfo -> nodeInfo.legalIdentities.first() != myIdentity }
             .map { it.legalIdentities.first().toDTOWithName() }
             .toList())
+
+    /**
+     * Tell the network that payment has been received
+     */
+    @PutMapping(value = "/titles/{title-number}/confirm-payment",
+            consumes = arrayOf(MediaType.APPLICATION_JSON_VALUE),
+            produces = arrayOf(MediaType.APPLICATION_JSON_VALUE))
+    fun confirmPaymentForTitle(@PathVariable("title-number") titleNumber: String): ResponseEntity<Any?> {
+        logger.info("POST /titles/$titleNumber/confirm-payment")
+
+        val paymentState = vaultQueryHelper {
+            //Get details of payment
+            val stateAndInstant: StateAndInstant<PaymentConfirmationState>? = getStateBy { it.state.data.titleID == titleNumber }
+
+            //Return 404 if null
+            stateAndInstant ?: return ResponseEntity.notFound().build()
+
+            stateAndInstant.state
+        }
+
+        return responseEntityFromFlowHandle {
+            it.startFlowDynamic(
+                    ConfirmPaymentReceivedFlow::class.java,
+                    paymentState.linearId.toString()
+            )
+        }
+    }
 
     /**
      * Returns all titles
