@@ -1,0 +1,648 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "version": "0.1.0",
+    "title": "Payment API",
+    "description": "HM Land Registry Digital Street Proof of Concept",
+    "contact": {
+      "name": "HM Land Registry"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "paths": {
+    "/titles": {
+      "get": {
+        "summary": "Retrieve a list of Titles",
+        "operationId": "get_titles",
+        "tags": [
+          "Titles"
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TitleTransfer"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/titles/{title_number}": {
+      "get": {
+        "summary": "Retrieve a specific Title",
+        "operationId": "get_title",
+        "tags": [
+          "Titles"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TitleNumber"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TitleTransfer"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TitleTransfer": {
+        "required": [
+          "title_number",
+          "states",
+          "status"
+        ],
+        "properties": {
+          "title_number": {
+            "type": "string",
+            "pattern": "^([A-Z]{0,3}[1-9][0-9]{0,5}|[0-9]{1,6}[ZT])$",
+            "example": "ZQV888860"
+          },
+          "title": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Title"
+              }
+            ],
+            "nullable": true
+          },
+          "proposed_title": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Title"
+              }
+            ],
+            "nullable": true
+          },
+          "sales_agreement": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SalesAgreement"
+              }
+            ],
+            "nullable": true
+          },
+          "states": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StateSummary"
+            },
+            "example": {
+              "land_title": {
+                "state_status": "issued",
+                "timestamp": "2018-11-07T10:25:29+00:00"
+              },
+              "sales_agreement": {
+                "state_status": "created",
+                "timestamp": "2018-11-08T10:25:29+00:00"
+              },
+              "request_issuance": {
+                "state_status": "approved",
+                "timestamp": "2018-11-06T10:25:29+00:00"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "example": "land_title_issued"
+          }
+        }
+      },
+      "StateSummary": {
+        "required": [
+          "state_status",
+          "timestamp"
+        ],
+        "properties": {
+          "state_status": {
+            "type": "string",
+            "example": "approved"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-11-07T10:25:29+00:00"
+          }
+        }
+      },
+      "Title": {
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/TitleAddress"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/Owner"
+          },
+          "delegated_owner": {
+            "$ref": "#/components/schemas/X500"
+          },
+          "last_sold_value": {
+            "type": "number",
+            "format": "double",
+            "example": 124999.99
+          },
+          "last_sold_value_currency_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "example": "GBP"
+          },
+          "charges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Charge"
+            }
+          },
+          "restrictions": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Restriction"
+                },
+                {
+                  "$ref": "#/components/schemas/ChargeRestriction"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "SalesAgreement": {
+        "required": [
+          "buyer",
+          "buyer_conveyancer",
+          "creation_date",
+          "completion_date",
+          "contract_rate",
+          "purchase_price",
+          "purchase_price_currency_code",
+          "deposit",
+          "deposit_currency_code",
+          "balance",
+          "balance_currency_code",
+          "guarantee"
+        ],
+        "properties": {
+          "buyer": {
+            "$ref": "#/components/schemas/Owner"
+          },
+          "buyer_conveyancer": {
+            "$ref": "#/components/schemas/X500"
+          },
+          "creation_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2018-11-07"
+          },
+          "completion_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-11-07T10:25:29+00:00"
+          },
+          "contract_rate": {
+            "type": "number",
+            "format": "double",
+            "example": 4.8
+          },
+          "purchase_price": {
+            "type": "number",
+            "format": "double",
+            "example": 124999.99
+          },
+          "purchase_price_currency_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "example": "GBP"
+          },
+          "deposit": {
+            "type": "number",
+            "format": "double",
+            "example": 12499.98
+          },
+          "deposit_currency_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "example": "GBP"
+          },
+          "contents_price": {
+            "type": "number",
+            "format": "double",
+            "example": 124999.99,
+            "nullable": true
+          },
+          "contents_price_currency_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "example": "GBP",
+            "nullable": true
+          },
+          "balance": {
+            "type": "number",
+            "format": "double",
+            "example": 112500.01,
+            "readOnly": true
+          },
+          "balance_currency_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "example": "GBP",
+            "readOnly": true
+          },
+          "guarantee": {
+            "type": "string",
+            "enum": [
+              "full",
+              "limited"
+            ],
+            "example": "full"
+          },
+          "latest_update_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-11-07T10:25:29+00:00"
+          }
+        }
+      },
+      "SalesAgreementSign": {
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "sign"
+            ]
+          },
+          "signatory": {
+            "$ref": "#/components/schemas/X500"
+          },
+          "signatory_individual": {
+            "$ref": "#/components/schemas/Person"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Charge": {
+        "required": [
+          "date",
+          "lender",
+          "amount",
+          "amount_currency_code"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-11-07T10:25:29+00:00"
+          },
+          "lender": {
+            "$ref": "#/components/schemas/X500"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 124999.99
+          },
+          "amount_currency_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "example": "GBP"
+          }
+        }
+      },
+      "RestrictionType": {
+        "required": [
+          "restriction_type"
+        ],
+        "properties": {
+          "restriction_type": {
+            "type": "string",
+            "enum": [
+              "ORES",
+              "CBCR"
+            ],
+            "example": "CBCR"
+          }
+        },
+        "discriminator": {
+          "propertyName": "restriction_type",
+          "mapping": {
+            "ORES": "Restriction",
+            "CBCR": "ChargeRestriction"
+          }
+        }
+      },
+      "RestrictionBase": {
+        "required": [
+          "restriction_id",
+          "restriction_text",
+          "consenting_party",
+          "date"
+        ],
+        "properties": {
+          "restriction_id": {
+            "type": "string"
+          },
+          "restriction_text": {
+            "type": "string",
+            "example": "A string of text containing infills. This restriction is of type **RT** and was created at **RD**."
+          },
+          "consenting_party": {
+            "$ref": "#/components/schemas/X500"
+          },
+          "signed_actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "add",
+                "remove"
+              ]
+            },
+            "readOnly": true,
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-11-07T10:25:29+00:00"
+          }
+        }
+      },
+      "Restriction": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RestrictionType"
+          },
+          {
+            "$ref": "#/components/schemas/RestrictionBase"
+          }
+        ]
+      },
+      "ChargeRestriction": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RestrictionType"
+          },
+          {
+            "$ref": "#/components/schemas/RestrictionBase"
+          }
+        ],
+        "required": [
+          "charge"
+        ],
+        "properties": {
+          "charge": {
+            "$ref": "#/components/schemas/Charge"
+          }
+        }
+      },
+      "Person": {
+        "required": [
+          "identity",
+          "first_name",
+          "last_name",
+          "email_address",
+          "phone_number",
+          "type",
+          "address"
+        ],
+        "properties": {
+          "identity": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number to uniquely identify people across organisations"
+          },
+          "first_name": {
+            "type": "string",
+            "example": "Natasha"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "Powell"
+          },
+          "email_address": {
+            "type": "string",
+            "format": "email",
+            "example": "natasha.powell@example.com"
+          },
+          "phone_number": {
+            "type": "string",
+            "example": "07700900123"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company",
+              "overseas company",
+              "non government organisation"
+            ]
+          },
+          "address": {
+            "$ref": "#/components/schemas/PersonAddress"
+          }
+        }
+      },
+      "Owner": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Person"
+          }
+        ]
+      },
+      "TitleAddress": {
+        "required": [
+          "house_name_number",
+          "street",
+          "town_city",
+          "county",
+          "country",
+          "postcode"
+        ],
+        "properties": {
+          "house_name_number": {
+            "type": "string",
+            "example": 2
+          },
+          "street": {
+            "type": "string",
+            "example": "William Prance Road"
+          },
+          "town_city": {
+            "type": "string",
+            "example": "Plymouth"
+          },
+          "county": {
+            "type": "string",
+            "example": "Devon"
+          },
+          "country": {
+            "type": "string",
+            "enum": [
+              "England",
+              "Wales"
+            ]
+          },
+          "postcode": {
+            "type": "string",
+            "pattern": "^(GIR ?0AA|[A-PR-UWYZ]([0-9]{1,2}|([A-HK-Y][0-9]([0-9ABEHMNPRV-Y])?)|[0-9][A-HJKPS-UW]) ?[0-9][ABD-HJLNP-UW-Z]{2})$",
+            "example": "PL6 5WS"
+          }
+        }
+      },
+      "PersonAddress": {
+        "required": [
+          "house_name_number",
+          "street",
+          "town_city",
+          "county",
+          "country",
+          "postcode"
+        ],
+        "properties": {
+          "house_name_number": {
+            "type": "string",
+            "example": 143
+          },
+          "street": {
+            "type": "string",
+            "example": "Cowgate"
+          },
+          "town_city": {
+            "type": "string",
+            "example": "Edinburgh"
+          },
+          "county": {
+            "type": "string",
+            "example": "Midlothian"
+          },
+          "country": {
+            "type": "string",
+            "example": "Scotland"
+          },
+          "postcode": {
+            "type": "string",
+            "example": "EH1 1JS"
+          }
+        }
+      },
+      "X500": {
+        "type": "object",
+        "required": [
+          "organisation",
+          "locality",
+          "country"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "organisation": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,126}\\S)$",
+            "example": "Generic Conveyancing Company"
+          },
+          "locality": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,62}\\S)$",
+            "example": "Plymouth"
+          },
+          "country": {
+            "type": "string",
+            "pattern": "^([A-Z]{2})$",
+            "example": "GB"
+          },
+          "state": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,126}\\S)$",
+            "example": "Devon"
+          },
+          "organisational_unit": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,126}\\S)$",
+            "example": "Digital"
+          },
+          "common_name": {
+            "type": "string",
+            "pattern": "^([A-Z]{1}[^\\r\\n\\t\\f\\v\\,\\=\\$\\\"\\'\\\\]{0,126}\\S)$",
+            "example": "Generic Conveyancing Company"
+          }
+        }
+      },
+      "Error": {
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "TitleNumber": {
+        "name": "title_number",
+        "in": "path",
+        "required": true,
+        "description": "The unique ID of a Title",
+        "schema": {
+          "type": "string",
+          "pattern": "^([A-Z]{0,3}[1-9][0-9]{0,5}|[0-9]{1,6}[ZT])$"
+        }
+      }
+    },
+    "responses": {
+      "500": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "links": {
+      "GetTitle": {
+        "operationId": "get_title",
+        "parameters": {
+          "title_number": "$response.body#/title_number"
+        }
+      }
+    }
+  }
+}
