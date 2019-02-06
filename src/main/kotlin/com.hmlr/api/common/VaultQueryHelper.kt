@@ -18,6 +18,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 abstract class VaultQueryHelperConsumer {
 
@@ -88,6 +92,7 @@ abstract class VaultQueryHelperConsumer {
             val titleNumbers = setOf<String>()
                     .union(landTitleStateAndInstants.keys)
                     .union(agreementStateAndInstants.keys)
+                    .union(paymentStateAndInstants.keys)
                     .union(chargesAndRestrictionsStateAndInstants.keys)
                     .union(requestIssuanceStateAndInstants.keys)
                     .union(requestIssuanceNotFailedStateAndInstants.keys)
@@ -177,10 +182,48 @@ abstract class VaultQueryHelperConsumer {
                     chargesAndRestrictionsStateAndInstant?.state?.status?.name?.toLowerCase() == "issued" &&
                             landTitleStateAndInstant == null
                 } -> "land_title_not_yet_issued"
+                run {
+                    paymentStateAndInstant?.state?.status?.name?.toLowerCase() == "issued"
+                } -> "payment_issued"
+                run {
+                    paymentStateAndInstant?.state?.status?.name?.toLowerCase() == "request_for_payment"
+                } -> "payment_request_for_payment"
+                run {
+                    paymentStateAndInstant?.state?.status?.name?.toLowerCase() == "confirm_funds_released"
+                } -> "payment_funds_released"
                 else -> "ERROR"
             }
 
             //Build DTO
+            var salesAgreement = if (agreementStateAndInstant == null || agreementStateAndInstant.state.status.name.toLowerCase() == "transferred") null else {
+                val referencedPaymentState = paymentStateAndInstants.first { it.state.landAgreementStateLinearId == agreementStateAndInstant.state.linearId.toString() }
+                val paymentSettler = referencedPaymentState.state.settlingParty
+                agreementStateAndInstant.state.toDTO(paymentSettler, agreementStateAndInstant.instant?.toLocalDateTime())
+            }
+
+            // This is because the Payment UI needs access to the buyer and buyer conveyancer details
+            // (which the payment state has), however there is sub object to display that data
+            // in the current TitleTransferDTO. Instead, in the essence of time, we are just bashing
+            // the payment state data into the sales agreement sub object.
+            if (salesAgreement == null && paymentStateAndInstant != null) salesAgreement = SalesAgreementDTO(
+                    paymentStateAndInstant.state.buyer.toDTO(),
+                    paymentStateAndInstant.state.buyerConveyancer.toDTO(),
+                    LocalDate.ofEpochDay(0),
+                    LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC),
+                    0.0,
+                    BigDecimal.ZERO,
+                    "GBP",
+                    BigDecimal.ZERO,
+                    "GBP",
+                    null,
+                    null,
+                    BigDecimal.ZERO,
+                    "GBP",
+                    "full",
+                    paymentStateAndInstant.state.settlingParty.toDTO(),
+                    paymentStateAndInstant.instant?.toLocalDateTime()
+            )
+
             return TitleTransferDTO(
                     title_number = titleNumber,
                     title = if (landTitleStateAndInstant == null) null else TitleDTO(
@@ -207,11 +250,7 @@ abstract class VaultQueryHelperConsumer {
                             chargesAndRestrictionsStateAndInstant.state.charges.map { it.toDTO() },
                             chargesAndRestrictionsStateAndInstant.state.restrictions.map { it.toDTO() }
                     ),
-                    sales_agreement = if (agreementStateAndInstant == null || agreementStateAndInstant.state.status.name.toLowerCase() == "transferred") null else {
-                        val referencedPaymentState = paymentStateAndInstants.first { it.state.landAgreementStateLinearId == agreementStateAndInstant.state.linearId.toString() }
-                        val paymentSettler = referencedPaymentState.state.settlingParty
-                        agreementStateAndInstant.state.toDTO(paymentSettler, agreementStateAndInstant.instant?.toLocalDateTime())
-                    },
+                    sales_agreement = salesAgreement,
                     states = stateStatuses,
                     status = status
             )
@@ -224,11 +263,13 @@ abstract class VaultQueryHelperConsumer {
             //Get states and instants
             val landTitleStateAndInstants: List<StateAndInstant<LandTitleState>> = vaultQueryHelperConsumer.getStatesBy { it.state.data.titleID == titleNumber }
             val requestIssuanceStateAndInstants: List<StateAndInstant<RequestIssuanceState>> = vaultQueryHelperConsumer.getStatesBy { it.state.data.titleID == titleNumber }
+            val paymentStateAndInstants: List<StateAndInstant<PaymentConfirmationState>> = vaultQueryHelperConsumer.getStatesBy { it.state.data.titleID == titleNumber }
 
             //Get title number
             val stateTitleNumber = when {
                 landTitleStateAndInstants.firstOrNull() != null -> landTitleStateAndInstants.first().state.titleID
                 requestIssuanceStateAndInstants.firstOrNull() != null -> requestIssuanceStateAndInstants.first().state.titleID
+                paymentStateAndInstants.firstOrNull() != null -> paymentStateAndInstants.first().state.titleID
                 else -> null
             }
 
@@ -237,7 +278,6 @@ abstract class VaultQueryHelperConsumer {
 
             //Get more states and instants
             val agreementStateAndInstants: List<StateAndInstant<LandAgreementState>> = vaultQueryHelperConsumer.getStatesBy { it.state.data.titleID == titleNumber }
-            val paymentStateAndInstants: List<StateAndInstant<PaymentConfirmationState>> = vaultQueryHelperConsumer.getStatesBy { it.state.data.titleID == titleNumber }
             val chargesAndRestrictionsStateAndInstants: List<StateAndInstant<ProposedChargesAndRestrictionsState>> = vaultQueryHelperConsumer.getStatesBy { it.state.data.titleID == titleNumber }
             val requestIssuanceNotFailedStateAndInstants: List<StateAndInstant<RequestIssuanceState>> = vaultQueryHelperConsumer.getStatesBy {
                 val hasFailed = it.state.data.status == RequestIssuanceStatus.FAILED || it.state.data.status == RequestIssuanceStatus.TITLE_ALREADY_ISSUED
