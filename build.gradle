@@ -28,7 +28,6 @@ repositories {
         dirs 'libs'
     }
 
-    maven { url 'https://jitpack.io' }//For KHTTP
 }
 
 dependencies {
@@ -47,7 +46,7 @@ dependencies {
     compile "com.hmlr:cordapp-flows:-SNAPSHOT"
     compile "com.hmlr:cordapp-common:-SNAPSHOT"
 
-    compile "com.github.jkcclemens:khttp:-SNAPSHOT"
+    compile "khttp:khttp:0.1.0"
 }
 
 compileKotlin {
