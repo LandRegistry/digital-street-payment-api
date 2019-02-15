@@ -164,9 +164,6 @@ abstract class VaultQueryHelperConsumer {
                     agreementStateAndInstant?.state?.status?.name?.toLowerCase() == "approved"
                 } -> "sales_agreement_approved"
                 run {
-                    paymentStateAndInstant?.state?.status?.name?.toLowerCase() == "confirm_payment_received_in_escrow"
-                } -> "payment_received_in_escrow"
-                run {
                     agreementStateAndInstant?.state?.status?.name?.toLowerCase() == "signed"
                 } -> "sales_agreement_seller_party_signed"
                 run {
